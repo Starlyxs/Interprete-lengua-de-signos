@@ -8,6 +8,13 @@ mp_hands = mp.solutions.hands
 def obtenerAngulos(results, width, height):
         for hand_landmarks in results.multi_hand_landmarks:
                     
+                    
+                    if hand_landmarks.landmark[17].x > hand_landmarks.landmark[5].x:
+                        
+                        lado_mano = "Derecha"
+                    else:
+                        lado_mano = "Izquierda"
+                    
                     # COORDENADAS MEÑIQUE
                     x1, y1 = [int(hand_landmarks.landmark[mp_hands.HandLandmark.PINKY_TIP].x * width), 
                               int(hand_landmarks.landmark[mp_hands.HandLandmark.PINKY_TIP].y * height)]
@@ -185,5 +192,5 @@ def obtenerAngulos(results, width, height):
                     angulosid = [angle1, angle2, angle3, angle4, angle5, angle6]
 
                     pinky = [int(hand_landmarks.landmark[mp_hands.HandLandmark.PINKY_TIP].x * width), int(hand_landmarks.landmark[mp_hands.HandLandmark.PINKY_TIP].y * height)]
-        return [angulosid, pinky]
+        return [angulosid, pinky,lado_mano]
                     

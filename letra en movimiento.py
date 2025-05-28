@@ -50,7 +50,7 @@ with mp_hands.Hands(
                     dedos.append(0)
 
                 # 4 dedos
-                for id in range(0, 4):
+                for id in range(4):
                     if angulosid[id] > 90:
                         dedos.append(1)
                     else:

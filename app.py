@@ -3,6 +3,8 @@ import mediapipe as mp
 from Funciones.condicionales import condicionalesLetras
 from Funciones.normalizacionCords import obtenerAngulos
 
+import serial
+import time
 lectura_actual = 0
 
 mp_drawing = mp.solutions.drawing_utils
@@ -32,7 +34,7 @@ with mp_hands.Hands(
         if results.multi_hand_landmarks is not None:
             # Accediendo a los puntos de referencia, de acuerdo a su nombre
                 
-                angulosid = obtenerAngulos(results, width, height)[0]
+                angulosid, pinky, lado_mano = obtenerAngulos(results, width, height)
 
                 dedos = []
                 # pulgar externo angle
@@ -48,7 +50,7 @@ with mp_hands.Hands(
                     dedos.append(0)
 
                 # 4 dedos
-                for id in range(0, 4):
+                for id in range(4):
                     if angulosid[id] > 90:
                         dedos.append(1)
                     else:
@@ -56,13 +58,11 @@ with mp_hands.Hands(
 
                 
                 TotalDedos = dedos.count(1)
-                condicionalesLetras(dedos, frame)
+                condicionalesLetras(dedos, frame, lado_mano)
                 
-                pinky = obtenerAngulos(results, width, height)[1]
-                pinkY=pinky[1] + pinky[0]   
+                pinkY = pinky[1] + pinky[0]   
                 resta = pinkY - lectura_actual
                 lectura_actual = pinkY
-                print(abs(resta), pinkY, lectura_actual)
                 
                 if dedos == [0, 0, 1, 0, 0, 0]:
                     if abs(resta) > 30:
@@ -78,6 +78,8 @@ with mp_hands.Hands(
                 #       "indice:", angle4, "pulgar 1:", angle5, "pulgar 2:", angle6)
                 # print (angle1, angle2, angle3, angle4, angle5, angle6)
 
+                
+
                 if results.multi_hand_landmarks:
                     for hand_landmarks in results.multi_hand_landmarks:
                         mp_drawing.draw_landmarks(
@@ -91,6 +93,18 @@ with mp_hands.Hands(
         
         if cv2.waitKey(1) & 0xFF == 27:
             break
+
+arduino = serial.Serial('COM3', 9600, timeout=1)
+time.sleep(2)  # Espera a que Arduino reinicie
+
+# Variable a enviar
+mensaje = "Hola Arduino"
+
+# Envía el mensaje
+arduino.write(mensaje.encode())
+
+# Cierra la conexión
+arduino.close()
 
 cap.release()
 cv2.destroyAllWindows()
