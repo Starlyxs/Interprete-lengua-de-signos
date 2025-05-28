@@ -3,15 +3,12 @@ import mediapipe as mp
 from Funciones.condicionales import condicionalesLetras
 from Funciones.normalizacionCords import obtenerAngulos
 
-import serial
-import time
 lectura_actual = 0
 
 mp_drawing = mp.solutions.drawing_utils
 mp_hands = mp.solutions.hands
 mp_drawing_styles = mp.solutions.drawing_styles
 
-#cap = cv2.VideoCapture("Letras/Letra_o.mp4")
 cap = cv2.VideoCapture(0)
 
 wCam, hCam = 1280, 720
@@ -25,86 +22,42 @@ with mp_hands.Hands(
 
     while True:
         ret, frame = cap.read()
-        if ret == False:
+        if not ret:
             break
         height, width, _ = frame.shape
         frame = cv2.flip(frame, 1)
         frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         results = hands.process(frame_rgb)
         if results.multi_hand_landmarks is not None:
-            # Accediendo a los puntos de referencia, de acuerdo a su nombre
-                
-                angulosid, pinky, lado_mano = obtenerAngulos(results, width, height)
+            angulosid, pinky, lado_mano = obtenerAngulos(results, width, height)
 
-                dedos = []
-                # pulgar externo angle
-                if angulosid[5] > 125:
-                    dedos.append(1)
-                else:
-                    dedos.append(0)
+            dedos = [1 if angulosid[5] > 125 else 0, 1 if angulosid[4] > 150 else 0]
+            # 4 dedos
+            dedos += [1 if angulosid[id] > 90 else 0 for id in range(4)]
 
-                # pulgar interno
-                if angulosid[4] > 150:
-                    dedos.append(1)
-                else:
-                    dedos.append(0)
+            condicionalesLetras(dedos, frame, lado_mano)
 
-                # 4 dedos
-                for id in range(4):
-                    if angulosid[id] > 90:
-                        dedos.append(1)
-                    else:
-                        dedos.append(0)
+            pinkY = pinky[1] + pinky[0]
+            resta = pinkY - lectura_actual
+            lectura_actual = pinkY
 
-                
-                TotalDedos = dedos.count(1)
-                condicionalesLetras(dedos, frame, lado_mano)
-                
-                pinkY = pinky[1] + pinky[0]   
-                resta = pinkY - lectura_actual
-                lectura_actual = pinkY
-                
-                if dedos == [0, 0, 1, 0, 0, 0]:
-                    if abs(resta) > 30:
-                        print("jota en movimento")
-                        font = cv2.FONT_HERSHEY_SIMPLEX
-                        cv2.rectangle(frame, (0, 0), (100, 100), (255, 255, 255), -1)
-                        cv2.putText(frame, 'J', (20, 80), font, 3, (0, 0, 0), 2, cv2.LINE_AA)
-                        
+            if dedos == [0, 0, 1, 0, 0, 0] and abs(resta) > 30:
+                print("jota en movimento")
+                font = cv2.FONT_HERSHEY_SIMPLEX
+                cv2.rectangle(frame, (0, 0), (100, 100), (255, 255, 255), -1)
+                cv2.putText(frame, 'J', (20, 80), font, 3, (0, 0, 0), 2, cv2.LINE_AA)
 
-                #testing--------------------------------------
-                # print(dedos)
-                # print("meñique:", angle1, "anular:", angle2, "medio:", angle3,
-                #       "indice:", angle4, "pulgar 1:", angle5, "pulgar 2:", angle6)
-                # print (angle1, angle2, angle3, angle4, angle5, angle6)
-
-                
-
-                if results.multi_hand_landmarks:
-                    for hand_landmarks in results.multi_hand_landmarks:
-                        mp_drawing.draw_landmarks(
-                            frame,
-                            hand_landmarks,
-                            mp_hands.HAND_CONNECTIONS,
-                            mp_drawing_styles.get_default_hand_landmarks_style(),
-                            mp_drawing_styles.get_default_hand_connections_style())
+            for hand_landmarks in results.multi_hand_landmarks:
+                mp_drawing.draw_landmarks(
+                    frame,
+                    hand_landmarks,
+                    mp_hands.HAND_CONNECTIONS,
+                    mp_drawing_styles.get_default_hand_landmarks_style(),
+                    mp_drawing_styles.get_default_hand_connections_style())
         cv2.imshow('Frame', frame)
-        #mostra fotogramas por segundos
-        
+
         if cv2.waitKey(1) & 0xFF == 27:
             break
-
-arduino = serial.Serial('COM6', 9600, timeout=1)
-time.sleep(2)  # Espera a que Arduino reinicie
-
-# Variable a enviar
-mensaje = "Hola Arduino"
-
-# Envía el mensaje
-arduino.write(mensaje.encode())
-
-# Cierra la conexión
-arduino.close()
 
 cap.release()
 cv2.destroyAllWindows()
