@@ -61,10 +61,23 @@ def condicionalesLetras(dedos, frame, mano_lado=None):
             condicionalesLetras.last_letra = letra_actual
 
         if letra_actual:
+                # Inicializar el diccionario de grados acumulados si no existe
+                if not hasattr(condicionalesLetras, "grados_acumulados"):
+                    condicionalesLetras.grados_acumulados = {k: 0 for k in ["A", "L", "P", "V", "W", "Y"]}
+
                 tiempo = time.time() - condicionalesLetras.last_time
                 grados = int(tiempo * 19)
                 grados = min(grados, 180)
-                cv2.putText(frame, f"{letra_actual} ({mano}): {grados} deg", (10, 150), font, 1, (0, 255, 0), 2, cv2.LINE_AA)
+
+                # Determinar el signo según la mano
+                signo = 1 if is_mano_derecha else -1
+
+                # Calcular el valor mostrado (acumulado + lo que se va a sumar/restar)
+                grados_actuales = condicionalesLetras.grados_acumulados.get(letra_actual, 0)
+                grados_mostrados = grados_actuales + signo * grados
+                grados_mostrados = max(0, min(grados_mostrados, 180))
+
+                cv2.putText(frame, f"{letra_actual} ({mano}): {grados_mostrados} deg", (10, 150), font, 1, (0, 255, 0), 2, cv2.LINE_AA)
 
         return dedos
 
@@ -102,6 +115,7 @@ def enviar_a_arduino_letra_tiempo(letra, tiempo, puerto='COM6', baudrate=9600):
     """
     Envía la letra y el tiempo al Arduino en el formato LetraGrados (ejemplo: P19).
     El tiempo se interpreta como grados (1 segundo = 19 grados).
+    Acumula los grados enviados por cada letra.
     """
     global arduino
     try:
@@ -109,10 +123,18 @@ def enviar_a_arduino_letra_tiempo(letra, tiempo, puerto='COM6', baudrate=9600):
             arduino = serial.Serial(puerto, baudrate, timeout=1)
             time.sleep(2)  # Espera a que Arduino reinicie si es necesario
 
+        if not hasattr(condicionalesLetras, "grados_acumulados"):
+            condicionalesLetras.grados_acumulados = {k: 0 for k in ["A", "L", "P", "V", "W", "Y"]}
+
         grados = int(tiempo * 19)  # 1 segundo = 19 grados
-        grados = min(grados, 180)
+        # Determinar el signo según el tiempo (ya viene con signo)
+        grados_actuales = condicionalesLetras.grados_acumulados.get(letra, 0)
+        grados_nuevos = grados_actuales + grados
+        grados_nuevos = max(0, min(grados_nuevos, 180))
+        condicionalesLetras.grados_acumulados[letra] = grados_nuevos
+
         mensaje = f"{letra}{grados}\n"
         arduino.write(mensaje.encode())
-        print(f"Enviado a Arduino: {mensaje.strip()}")
+        print(f"Enviado a Arduino: {mensaje.strip()} | Acumulado: {grados_nuevos}")
     except Exception as e:
         print(f"Error enviando a Arduino: {e}")
