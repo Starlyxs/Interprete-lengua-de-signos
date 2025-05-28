@@ -98,7 +98,7 @@ import serial
 
 arduino = None
 
-def enviar_a_arduino_letra_tiempo(letra, tiempo, puerto='COM3', baudrate=9600):
+def enviar_a_arduino_letra_tiempo(letra, tiempo, puerto='COM6', baudrate=9600):
     """
     Envía la letra y el tiempo al Arduino en el formato LetraGrados (ejemplo: P19).
     El tiempo se interpreta como grados (1 segundo = 19 grados).

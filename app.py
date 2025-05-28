@@ -94,7 +94,7 @@ with mp_hands.Hands(
         if cv2.waitKey(1) & 0xFF == 27:
             break
 
-arduino = serial.Serial('COM3', 9600, timeout=1)
+arduino = serial.Serial('COM6', 9600, timeout=1)
 time.sleep(2)  # Espera a que Arduino reinicie
 
 # Variable a enviar
